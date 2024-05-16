@@ -26,6 +26,8 @@ export default class GetBikeStations {
 
 		const response = await this.notionApi.queryDatabase(this.databaseId, sendFilters);
 
+		console.log(response.results
+		);
 		return response;
 
 	}

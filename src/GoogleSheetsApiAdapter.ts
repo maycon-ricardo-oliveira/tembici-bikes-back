@@ -7,7 +7,7 @@ import WeekDayFilter from "./Filters/WeekDayFilter";
 import NotionApiGateway from "./NotionApiGateway";
 import { Client } from '@notionhq/client';
 
-export default class NotionApiAdapter implements NotionApiGateway {
+export default class GoogleSheetsApiAdapter implements NotionApiGateway {
 	notion
 	filters: Array<Filter> = [];
 
