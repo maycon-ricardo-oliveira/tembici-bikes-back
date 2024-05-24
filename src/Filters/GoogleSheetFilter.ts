@@ -1,11 +1,13 @@
+
+
 import Filter from "../Filter";
 import FilterOption from "../FilterOption";
 
-export default class NeighborhoodFilter extends Filter {
+export default class GoogleSheetFilter extends Filter {
 	options: Array<FilterOption> = []
 
-	constructor () {
-		super("Bairro", "neighborhood", "multi_select")
+	constructor (header:string, queryName:string, type:string) {
+		super(header, queryName, type)
 	}
 
 	make(responseOptions: any) {
@@ -22,13 +24,8 @@ export default class NeighborhoodFilter extends Filter {
 	}
 
 	setFilter(option: string): any {
-		const isValidOption = this.options.find(item => item.name === option);
-		return {
-			property: this.name,
-			"multi_select": {
-				"contains": isValidOption ? option : ''
-			}
-		}
+
+		this.options.push(new FilterOption(option, option, `Description for ${option}`));
 	}
 
 }

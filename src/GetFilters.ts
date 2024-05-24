@@ -1,10 +1,10 @@
-import NotionApiGateway from "./NotionApiGateway";
+import ApiGateway from "./ApiGateway";
 
 export default class GetFilters {
 
 	constructor(
-		readonly notionApi: NotionApiGateway,
-		readonly databaseId = 'f5574781ad2e4d5e85990658c3803c5c'
+		readonly notionApi: ApiGateway,
+		readonly databaseId: string
 	) {
 
 	}

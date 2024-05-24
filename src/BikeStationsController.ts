@@ -1,4 +1,5 @@
 import GetBikeStations from "./GetBikeStations";
+import { FilterCriteria } from "./GoogleSheetsApiAdapter";
 import HttpServer from "./HttpServer";
 
 export default class BikeStationsController {
@@ -10,29 +11,22 @@ export default class BikeStationsController {
 	) {
 		httpServer.register("get", "/stations", async function (req: any, body: any) {
 
-			const filters = [
-				{
-					name: "Bairro",
-					value: req.query.neighborhood ?? null,
-				},
-				{
-					name: "Plano",
-					value: req.query.plan ?? null,
-				},
-				{
-					name: "Dia da Semana",
-					value: req.query.dayOfWeek ?? null,
-				},
-				{
-					name: "Horário",
-					value: req.query.time ?? null,
-				},{
-					name: "Cobrança Adicional",
-					value: req.query.addCharge ?? null
-				}
-			];
+			const criteria: FilterCriteria = {
+				'Mecanica': req.query.mech ?? null,
+				'Elétrica': req.query.electric ?? null,
+				'Endereço': req.query.address ?? null,
+				'Cobrança Adicional': req.query.addCharge ?? null,
+				'Tipo': req.query.type ?? null,
+				'Dia da Semana': req.query.dayOfWeek ?? null,
+				'Horário': req.query.time ?? null,
+				'Bairro': req.query.neighborhood ?? null,
+				'Plano': req.query.plan ?? null,
+				'Tarifa': req.query.tariff ?? null
+			};
+			
 
-			const response = await getBikeStations.execute(filters);
+			console.log(criteria)
+			const response = await getBikeStations.execute(criteria);
 			return response;
 		});
 	}

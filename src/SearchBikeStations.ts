@@ -1,4 +1,4 @@
-import NotionApiGateway from "./NotionApiGateway";
+import NotionApiGateway from "./ApiGateway";
 
 export default class SearchBikeStations {
 
