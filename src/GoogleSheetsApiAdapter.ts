@@ -220,10 +220,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			});
 	}
 
-	async searchBikeStations(spreadsheetId: string, criteria: FilterCriteria): Promise<any> {
-
-	}
-
 	async getLatLngFromAddress(address: string): Promise<{ lat: number|null, lng: number|null }> {
 				
 		try {

@@ -24,8 +24,6 @@ export default class BikeStationsController {
 				'Tarifa': req.query.tariff ?? null
 			};
 			
-
-			console.log(criteria)
 			const response = await getBikeStations.execute(criteria);
 			return response;
 		});
