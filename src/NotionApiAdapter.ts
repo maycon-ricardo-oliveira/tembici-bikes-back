@@ -7,6 +7,7 @@ import WeekDayFilter from "./Filters/WeekDayFilter";
 import NotionApiGateway from "./ApiGateway";
 import { Client } from '@notionhq/client';
 import ApiGateway from "./ApiGateway";
+import { FilterCriteria } from "./GoogleSheetsApiAdapter";
 
 export default class NotionApiAdapter implements ApiGateway {
 	notion
@@ -15,8 +16,11 @@ export default class NotionApiAdapter implements ApiGateway {
 	constructor () {
 		this.notion = new Client({ auth: 'secret_LEypnFxjdTrEr4otOYG6S9x2TaMLWQZ0u7rb7JIKJW1' });
 	}
+	getBikeStations(databaseId: string, criteria: FilterCriteria): Promise<any> {
+		throw new Error("Method not implemented.");
+	}
 
-	async searchBikeStations(databaseId: string, term: string): Promise<any> {
+	async searchBikeStations(databaseId: string, criteria: FilterCriteria): Promise<any> {
 		const response = await this.notion.search({
 			query: 'External tasks',
 			filter: {
