@@ -17,8 +17,9 @@ export default class ExpressAdapter implements HttpServer {
 	}
 
 	async listen(port: number): Promise<void> {
-		
-		this.app.use(cors());
+		this.app.use(cors({
+			origin: ['http://localhost:3000']
+		}));
 		return this.app.listen(port);
 	}
 
