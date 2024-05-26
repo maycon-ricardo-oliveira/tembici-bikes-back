@@ -102,49 +102,32 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
       }
 
 			const matchesCriteria = (row: any[]) => {
-				
-				return Object.keys(criteria).every(key => {
-					if (key === 'Tarifa') {
-						const priceValue = this.getPriceByType(criteria);
-						const price = !isNaN(parseFloat(priceValue)) && priceValue !== '' ? parseFloat(priceValue) : 0;
-						const tariff = this.calculateTariff(price);
+				for (const [key, value] of Object.entries(criteria)) {
+						if (key === 'Tarifa') {
 
-						return criteria[key] === null || criteria[key] === tariff;
-					}
-			
-					if (key === 'Tipo' && criteria[key] === 'mecanica' || 'eletrica') {
-						return true;
-					}
+							const priceValue = this.getPriceByType(row);
+								const price = !isNaN(parseFloat(priceValue)) && priceValue !== '' ? parseFloat(priceValue) : 0;
+								const tariff = this.calculateTariff(price);
+								if (value !== null && value !== tariff) {
+										return false;
+								}
+						} else if (key === 'Tipo' && (value === 'mecanica' || value === 'eletrica')) {
+								continue; // Ignora o filtro quando a chave for 'Tipo'
+						} else {
+								const colIndex = headerMap.get(key);
+								if (colIndex !== undefined) {
+										const cellValue = row[colIndex];
+										if (value !== null && value !== cellValue) {
+												return false;
+										}
+								}
+						}
+				}
+				return true;
+		};
+		
 
-					if (key === 'Horário') {
-            const horarioIndex = headerMap.get('Horário');
-            if (horarioIndex !== undefined) {
-                const horario = row[horarioIndex];
-                return criteria[key] === null || criteria[key] === horario;
-            } else {
-                return true; // Retorna true se a coluna 'Horário' não existe
-            }
-					}
-
-					if (key === 'Plano') {
-							const planoIndex = headerMap.get('Plano');
-							if (planoIndex !== undefined) {
-									const plano = row[planoIndex];
-									return criteria[key] === null || criteria[key] === plano;
-							} else {
-									return true; // Retorna true se a coluna 'Plano' não existe
-							}
-					}
-
-					const colIndex = headerMap.get(key);
-					if (criteria[key] === null) {
-						return true;
-					}
-
-					return colIndex !== undefined && row[colIndex] === criteria[key];
-				});
-			};
- 
+		
 			while (true) {
 				const endRow = startRow + this.batchSize - 1;
 				const result = await this.service.spreadsheets.values.get({

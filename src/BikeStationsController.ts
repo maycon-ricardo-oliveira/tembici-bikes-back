@@ -17,7 +17,7 @@ export default class BikeStationsController {
 				'Endereço': req.query.address ?? null,
 				'Cobrança Adicional': req.query.addCharge ?? null,
 				'Tipo': req.query.type ?? null,
-				'Dia da Semana': req.query.dayOfWeek ?? null,
+				'Dia da semana': req.query.dayOfWeek ?? null,
 				'Horário': req.query.time ?? null,
 				'Bairro': req.query.neighborhood ?? null,
 				'Plano': req.query.plan ?? null,
