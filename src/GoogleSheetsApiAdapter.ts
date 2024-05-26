@@ -53,17 +53,34 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		}
 	};
 
-	getPriceByType(criteria: FilterCriteria) {
+	getPriceByType(row: any[], headerMap: Map<string, number>, type: string | null): number {
+    if (type === 'mecanica') {
+        const mechIndex = headerMap.get('Mecanica');
+        if (mechIndex !== undefined) {
+          return parseFloat(row[mechIndex]) || 0;
+        }
+    } else if (type === 'eletrica') {
+        const elecIndex = headerMap.get('Elétrica');
+        if (elecIndex !== undefined) {
+          return parseFloat(row[elecIndex]) || 0;
+        }
+    }
+    return 0;
+	}
+
+	getPriceByTypeOnObj(criteria: FilterCriteria): number {
 
 		if (criteria['Tipo']) {
 			if (criteria['Tipo'] == 'mecanica') {
-				return criteria['Mecanica'];
+				return parseFloat(criteria['Mecanica']) || 0;
 			}
 			if (criteria['Tipo'] == 'eletrica') {
-				return criteria['Elétrica'];
+				return parseFloat(criteria['Elétrica']) || 0;
 			}
 		}
-	};
+		return 0;
+	}
+	
 
 	async getBikeStations(spreadsheetId: string, criteria: FilterCriteria) {
 		try {
@@ -87,7 +104,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
       let lngIndex = headers.indexOf('Longitude');
 			let type = headers.indexOf('Tipo');
 
-      // Adicionar colunas Latitude e Longitude se não existirem
       if (latIndex === -1) {
         headers.push('Latitude');
         latIndex = headers.length - 1;
@@ -104,15 +120,16 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			const matchesCriteria = (row: any[]) => {
 				for (const [key, value] of Object.entries(criteria)) {
 						if (key === 'Tarifa') {
+							const type = criteria['Tipo'] || null;
+							const price = this.getPriceByType(row, headerMap, type);
 
-							const priceValue = this.getPriceByType(row);
-								const price = !isNaN(parseFloat(priceValue)) && priceValue !== '' ? parseFloat(priceValue) : 0;
-								const tariff = this.calculateTariff(price);
-								if (value !== null && value !== tariff) {
-										return false;
-								}
+							console.log('matchesCriteria', price)
+							const tariff = this.calculateTariff(price);
+							if (value !== null && value !== tariff) {
+									return false;
+							}
 						} else if (key === 'Tipo' && (value === 'mecanica' || value === 'eletrica')) {
-								continue; // Ignora o filtro quando a chave for 'Tipo'
+								continue;
 						} else {
 								const colIndex = headerMap.get(key);
 								if (colIndex !== undefined) {
@@ -125,8 +142,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 				}
 				return true;
 		};
-		
-
 		
 			while (true) {
 				const endRow = startRow + this.batchSize - 1;
@@ -158,11 +173,11 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			}
 
 			const enhancedData =  await Promise.all(filteredData.map(async row => {
-				
-				const priceValue = this.getPriceByType(row);
-				const price = !isNaN(parseFloat(priceValue)) && priceValue !== '' ? parseFloat(priceValue) : 0;
+				const type = criteria['Tipo'] || null;
+				const price = this.getPriceByTypeOnObj(row);
 				const tariff = this.calculateTariff(price);
-				
+				console.log('enhancedData', price, type, row)
+
 				let lat = row['Latitude'];
 				let lng = row['Longitude'];
 
