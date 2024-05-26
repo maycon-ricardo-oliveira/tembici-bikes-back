@@ -5,9 +5,13 @@ import FiltersController from "./FiltersController";
 import GetBikeStations from "./GetBikeStations";
 import GetFilters from "./GetFilters";
 import GoogleSheetsApiAdapter, { FilterCriteria } from "./GoogleSheetsApiAdapter";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const spreadsheetId = "1g_uXx2sEpwnhwWBtuD_KAfeqe3fhgwHXtOg5muG7mXM";
 const port = parseInt(process.env.PORT || "3030", 10);
+
 
 const googleSheetsApiAdapter = new GoogleSheetsApiAdapter();
 const httpServer = new ExpressAdapter();

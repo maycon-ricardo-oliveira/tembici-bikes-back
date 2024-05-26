@@ -1,6 +1,6 @@
 import HttpServer from "./HttpServer";
 import express from "express";
-
+const cors = require('cors');
 export default class ExpressAdapter implements HttpServer {
 	app: any;
 
@@ -17,6 +17,8 @@ export default class ExpressAdapter implements HttpServer {
 	}
 
 	async listen(port: number): Promise<void> {
+		
+		this.app.use(cors());
 		return this.app.listen(port);
 	}
 
