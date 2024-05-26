@@ -1,7 +1,7 @@
 import { GoogleSpreadsheet } from "google-spreadsheet";
 import Filter from "./Filter";
 import {google} from 'googleapis';
-import credentials from "../credentials.json"
+import credentials from "../credentials.json";
 import GoogleSheetFilter from "./Filters/GoogleSheetFilter";
 import ApiGateway from "./ApiGateway";
 
