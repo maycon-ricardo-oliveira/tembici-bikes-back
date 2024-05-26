@@ -1,3 +1,4 @@
+import { makeConsoleLogger } from "@notionhq/client/build/src/logging";
 import BikeStationsController from "./BikeStationsController";
 import ExpressAdapter from "./ExpressAdapter";
 import FiltersController from "./FiltersController";
@@ -36,5 +37,6 @@ new BikeStationsController(httpServer, getBikeStations);
 new FiltersController(httpServer, getFilters);
 
 
+console.log('Ready ;)')
 httpServer.listen(3030);
 
