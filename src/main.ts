@@ -7,6 +7,7 @@ import GetFilters from "./GetFilters";
 import GoogleSheetsApiAdapter, { FilterCriteria } from "./GoogleSheetsApiAdapter";
 
 const spreadsheetId = "1g_uXx2sEpwnhwWBtuD_KAfeqe3fhgwHXtOg5muG7mXM";
+const port = parseInt(process.env.PORT || "3030", 10);
 
 const googleSheetsApiAdapter = new GoogleSheetsApiAdapter();
 const httpServer = new ExpressAdapter();
@@ -37,6 +38,5 @@ new BikeStationsController(httpServer, getBikeStations);
 new FiltersController(httpServer, getFilters);
 
 
-console.log('Ready ;)')
-httpServer.listen(3030);
-
+console.log(port)
+httpServer.listen(port);
