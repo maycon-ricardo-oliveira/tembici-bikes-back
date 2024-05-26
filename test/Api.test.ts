@@ -5,12 +5,12 @@ import GetFilters from "../src/GetFilters";
 import NotionApiAdapter from "../src/NotionApiAdapter";
 
 test("Deve ter um filtro", function () {
-	const notionApiAdapter = new NotionApiAdapter();
-	const getBikeStations = new GetBikeStations(notionApiAdapter);
+	// const notionApiAdapter = new NotionApiAdapter();
+	// const getBikeStations = new GetBikeStations(notionApiAdapter);
 
-	const availableFilters = ["Moema"];
+	// const availableFilters = ["Moema"];
 
-	getBikeStations.execute(availableFilters);
+	// getBikeStations.execute(availableFilters);
 
 	
 

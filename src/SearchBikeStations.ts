@@ -11,9 +11,9 @@ export default class SearchBikeStations {
 
 	async execute(term: string)
 	{
-		const bikeStations = await this.notionApi.searchBikeStations(this.databaseId, term);
+		// const bikeStations = await this.notionApi.searchBikeStations(this.databaseId, term);
 
-		return bikeStations;
+		// return bikeStations;
 
 	}
 }
