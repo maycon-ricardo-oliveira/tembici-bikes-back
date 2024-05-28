@@ -100,7 +100,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 
 			let latIndex = headers.indexOf('Latitude');
       let lngIndex = headers.indexOf('Longitude');
-			let type = headers.indexOf('Tipo');
 
       if (latIndex === -1) {
         headers.push('Latitude');
@@ -108,10 +107,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
       }
       if (lngIndex === -1) {
         headers.push('Longitude');
-        lngIndex = headers.length - 1;
-      }
-      if (type === -1) {
-        headers.push('Tipo');
         lngIndex = headers.length - 1;
       }
 
