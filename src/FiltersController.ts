@@ -8,9 +8,11 @@ export default class FiltersController {
 		getFilters: GetFilters
 
 	) {
-		httpServer.register("get", "/filters", async function (req: any, body: any) {
+		httpServer.register("get", "/filters/:databaseId/:sheetName", async function (req: any, body: any) {
 
-			const response = await getFilters.execute();
+			const sheetName = req.params.sheetName;
+			const databaseId = req.params.databaseId;
+			const response = await getFilters.execute(databaseId, sheetName);
 			return response;
 		});
 	}

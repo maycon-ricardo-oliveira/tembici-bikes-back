@@ -4,8 +4,7 @@ import ApiGateway from "./ApiGateway";
 export default class GetBikeStations {
 
 	constructor (
-		readonly apiGateway: ApiGateway,
-		readonly databaseId: string
+		readonly apiGateway: ApiGateway
 	) {
 
 	}

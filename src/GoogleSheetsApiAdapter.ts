@@ -9,10 +9,6 @@ import 'reflect-metadata';
 import { Location, Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
 import axios from 'axios';
 
-const provider: GoogleMapsProvider = new GoogleMapsProvider(axios, 'AIzaSyCInglOulrm7ViPoBXW5N6E_lNKNIgVPS4');
-
-const geocoder: Geocoder = new Geocoder(provider);
-
 export interface FilterCriteria {
   [key: string]: any;
 }
@@ -22,19 +18,20 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 	filters: Array<Filter> = [];
 	service
 	batchSize = 500
+	geocoder
 	constructor () {
-		this.apiKey = "AIzaSyCInglOulrm7ViPoBXW5N6E_lNKNIgVPS4"
-		
+		this.apiKey = process.env.GOOGLE_API_KEY ?? ''
 		const auth = new google.auth.GoogleAuth({
-			
 			scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 			credentials: {
         client_email: credentials.client_id,
         private_key: credentials.private_key,
       },
 		});
-
 		this.service = google.sheets({version: 'v4', auth});
+
+		const provider: GoogleMapsProvider = new GoogleMapsProvider(axios, this.apiKey);
+		this.geocoder = new Geocoder(provider);
 	}
 
 	calculateTariff(price: number) {
@@ -210,7 +207,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 	async getLatLngFromAddress(address: string): Promise<{ lat: number|null, lng: number|null }> {
 				
 		try {
-			const locations: Location[] = await geocoder.geocode({
+			const locations: Location[] = await this.geocoder.geocode({
 					address: address,
 			});
 		

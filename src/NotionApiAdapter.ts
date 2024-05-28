@@ -13,7 +13,7 @@ export default class NotionApiAdapter implements ApiGateway {
 	filters: Array<Filter> = [];
 
 	constructor () {
-		this.notion = new Client({ auth: 'secret_LEypnFxjdTrEr4otOYG6S9x2TaMLWQZ0u7rb7JIKJW1' });
+		this.notion = new Client({ auth: process.env.NOTION_API_SECRET ?? '' });
 	}
 	getBikeStations(databaseId: string, sheetName: string, criteria: FilterCriteria): Promise<any> {
 		throw new Error("Method not implemented.");
@@ -35,7 +35,7 @@ export default class NotionApiAdapter implements ApiGateway {
 	}
 	
 	async getPage(pageId: string): Promise<any> {
-		// const pageId = '1fc76e427a2a48e8af489177ffb2d2fb';
+
 		const response = await this.notion.pages.retrieve({ page_id: pageId });
 		return response;
 	}

@@ -26,7 +26,6 @@ export default class BikeStationsController {
 			
 			const sheetName = req.params.sheetName;
 			const databaseId = req.params.databaseId;
-
 			const response = await getBikeStations.execute(databaseId, sheetName, criteria);
 			return response;
 		});

@@ -3,16 +3,14 @@ import ApiGateway from "./ApiGateway";
 export default class GetFilters {
 
 	constructor(
-		readonly api: ApiGateway,
-		readonly databaseId: string,
-		readonly sheetName: string
+		readonly api: ApiGateway
 	) {
 
 	}
 
-	async execute()
+	async execute(databaseId:string, sheetName:string)
 	{
-		const filters = await this.api.getDatabaseFilters(this.databaseId, this.sheetName);
+		const filters = await this.api.getDatabaseFilters(databaseId, sheetName);
 
 		return filters;
 
