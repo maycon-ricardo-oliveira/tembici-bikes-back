@@ -1,7 +1,4 @@
-import Filter from "./Filter";
-import FilterOption from "./FilterOption";
-import NotionApiGateway from "./ApiGateway";
-import GoogleSheetsApiAdapter, { FilterCriteria } from "./GoogleSheetsApiAdapter";
+import { FilterCriteria } from "./GoogleSheetsApiAdapter";
 import ApiGateway from "./ApiGateway";
 
 export default class GetBikeStations {
@@ -13,8 +10,8 @@ export default class GetBikeStations {
 
 	}
 
-	async execute(criteria: FilterCriteria) {
-		const response = await this.apiGateway.getBikeStations(this.databaseId, criteria);
+	async execute(databaseId:string, sheetName:string, criteria: FilterCriteria) {
+		const response = await this.apiGateway.getBikeStations(databaseId, sheetName, criteria);
 		return response;
 	}
 

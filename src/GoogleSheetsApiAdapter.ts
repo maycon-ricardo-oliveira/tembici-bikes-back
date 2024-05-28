@@ -6,7 +6,7 @@ import GoogleSheetFilter from "./Filters/GoogleSheetFilter";
 import ApiGateway from "./ApiGateway";
 
 import 'reflect-metadata';
-import { Distance, Location, Geocoder, GoogleMapsProvider, Suggestion } from '@goparrot/geocoder';
+import { Location, Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
 import axios from 'axios';
 
 const provider: GoogleMapsProvider = new GoogleMapsProvider(axios, 'AIzaSyCInglOulrm7ViPoBXW5N6E_lNKNIgVPS4');
@@ -17,12 +17,10 @@ export interface FilterCriteria {
   [key: string]: any;
 }
 
-
 export default class GoogleSheetsApiAdapter implements ApiGateway {
 	apiKey
 	filters: Array<Filter> = [];
 	service
-	sheetName = "Testing"
 	batchSize = 500
 	constructor () {
 		this.apiKey = "AIzaSyCInglOulrm7ViPoBXW5N6E_lNKNIgVPS4"
@@ -82,14 +80,14 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 	}
 	
 
-	async getBikeStations(spreadsheetId: string, criteria: FilterCriteria) {
+	async getBikeStations(spreadsheetId: string, sheetName: string, criteria: FilterCriteria) {
 		try {
 			let startRow = 1;
 			let filteredData:any[] = [];
 	
 			const headerResult = await this.service.spreadsheets.values.get({
 				spreadsheetId,
-				range: `${this.sheetName}!A1:Z1`,
+				range: `${sheetName}!A1:Z1`,
 				valueRenderOption: 'UNFORMATTED_VALUE'
 			});
 
@@ -123,7 +121,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 							const type = criteria['Tipo'] || null;
 							const price = this.getPriceByType(row, headerMap, type);
 
-							console.log('matchesCriteria', price)
 							const tariff = this.calculateTariff(price);
 							if (value !== null && value !== tariff) {
 									return false;
@@ -147,7 +144,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 				const endRow = startRow + this.batchSize - 1;
 				const result = await this.service.spreadsheets.values.get({
 					spreadsheetId,
-					range: `${this.sheetName}!A${startRow}:Z${endRow}`,
+					range: `${sheetName}!A${startRow}:Z${endRow}`,
 				});
 	
 				const values = result.data.values;
@@ -173,10 +170,8 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			}
 
 			const enhancedData =  await Promise.all(filteredData.map(async row => {
-				const type = criteria['Tipo'] || null;
 				const price = this.getPriceByTypeOnObj(row);
 				const tariff = this.calculateTariff(price);
-				console.log('enhancedData', price, type, row)
 
 				let lat = row['Latitude'];
 				let lng = row['Longitude'];
@@ -196,23 +191,20 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 				};
 			}));
 
-			await this.updateSheetData(enhancedData, headers, spreadsheetId);
-
-			console.log(enhancedData.length)
+			await this.updateSheetData(enhancedData, headers, spreadsheetId, sheetName);
 			return enhancedData;
-
 		} catch (error) {
 			console.error('Error filtering sheet:', error);
 		}
 
 	}
 
-	async updateSheetData(enhancedData: any[], headers:any[], spreadsheetId:string) {
+	async updateSheetData(enhancedData: any[], headers:any[], spreadsheetId:string, sheetName:string) {
 		const updatedValues = enhancedData.map(row => headers.map(header => row[header]));
 
 			await this.service.spreadsheets.values.update({
 				spreadsheetId,
-				range: `${this.sheetName}!A2:${String.fromCharCode(65 + headers.length - 1)}${enhancedData.length + 1}`,
+				range: `${sheetName}!A2:${String.fromCharCode(65 + headers.length - 1)}${enhancedData.length + 1}`,
 				valueInputOption: 'RAW',
 				requestBody: {
 					values: updatedValues,
@@ -242,7 +234,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		}
 	}
 	
-	async getDatabaseFilters(spreadsheetId: string): Promise<Array<Filter>> {
+	async getDatabaseFilters(spreadsheetId: string, sheetName: string): Promise<Array<Filter>> {
 
 		const headerToQueryNameMap: { [key: string]: string } = {
 			'Mecanica': 'mech',
@@ -261,7 +253,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 
 			const headerResult = await this.service.spreadsheets.values.get({
 				spreadsheetId,
-				range: `${this.sheetName}!A1:Z1`,
+				range: `${sheetName}!A1:Z1`,
 			});
 			
 			const headers = headerResult.data.values ? headerResult.data.values[0] : [];

@@ -3,15 +3,16 @@ import ApiGateway from "./ApiGateway";
 export default class GetFilters {
 
 	constructor(
-		readonly notionApi: ApiGateway,
-		readonly databaseId: string
+		readonly api: ApiGateway,
+		readonly databaseId: string,
+		readonly sheetName: string
 	) {
 
 	}
 
 	async execute()
 	{
-		const filters = await this.notionApi.getDatabaseFilters(this.databaseId);
+		const filters = await this.api.getDatabaseFilters(this.databaseId, this.sheetName);
 
 		return filters;
 

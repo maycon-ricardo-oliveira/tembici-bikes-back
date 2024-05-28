@@ -9,7 +9,7 @@ export default class BikeStationsController {
 		getBikeStations: GetBikeStations
 
 	) {
-		httpServer.register("get", "/stations", async function (req: any, body: any) {
+		httpServer.register("get", "/stations/:databaseId/:sheetName", async function (req: any, body: any) {
 
 			const criteria: FilterCriteria = {
 				'Mecanica': req.query.mech ?? null,
@@ -24,7 +24,10 @@ export default class BikeStationsController {
 				'Tarifa': req.query.tariff ?? null
 			};
 			
-			const response = await getBikeStations.execute(criteria);
+			const sheetName = req.params.sheetName;
+			const databaseId = req.params.databaseId;
+
+			const response = await getBikeStations.execute(databaseId, sheetName, criteria);
 			return response;
 		});
 	}

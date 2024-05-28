@@ -4,7 +4,6 @@ import NeighborhoodFilter from "./Filters/NeighborhoodFilter";
 import PlanFilter from "./Filters/PlanFilter";
 import TimeFilter from "./Filters/TimeFilter";
 import WeekDayFilter from "./Filters/WeekDayFilter";
-import NotionApiGateway from "./ApiGateway";
 import { Client } from '@notionhq/client';
 import ApiGateway from "./ApiGateway";
 import { FilterCriteria } from "./GoogleSheetsApiAdapter";
@@ -16,7 +15,7 @@ export default class NotionApiAdapter implements ApiGateway {
 	constructor () {
 		this.notion = new Client({ auth: 'secret_LEypnFxjdTrEr4otOYG6S9x2TaMLWQZ0u7rb7JIKJW1' });
 	}
-	getBikeStations(databaseId: string, criteria: FilterCriteria): Promise<any> {
+	getBikeStations(databaseId: string, sheetName: string, criteria: FilterCriteria): Promise<any> {
 		throw new Error("Method not implemented.");
 	}
 

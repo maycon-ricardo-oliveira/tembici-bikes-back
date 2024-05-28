@@ -1,4 +1,3 @@
-import GetBikeStations from "./GetBikeStations";
 import GetFilters from "./GetFilters";
 import HttpServer from "./HttpServer";
 
