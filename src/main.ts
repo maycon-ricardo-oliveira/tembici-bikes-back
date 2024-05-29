@@ -5,6 +5,7 @@ import GetBikeStations from "./GetBikeStations";
 import GetFilters from "./GetFilters";
 import GoogleSheetsApiAdapter from "./GoogleSheetsApiAdapter";
 import dotenv from 'dotenv';
+import SearchBikeStationsController from "./SearchBikeStationsController";
 
 dotenv.config();
 
@@ -19,5 +20,7 @@ const getFilters = new GetFilters(googleSheetsApiAdapter);
 
 new BikeStationsController(httpServer, getBikeStations);
 new FiltersController(httpServer, getFilters);
+new SearchBikeStationsController(httpServer, getBikeStations);
+
 
 httpServer.listen(port);

@@ -5,7 +5,7 @@ export default class GetBikeStations {
 
 	constructor (
 		readonly apiGateway: ApiGateway
-	) {
+ ) {
 
 	}
 

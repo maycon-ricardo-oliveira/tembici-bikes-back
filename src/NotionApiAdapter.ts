@@ -19,7 +19,7 @@ export default class NotionApiAdapter implements ApiGateway {
 		throw new Error("Method not implemented.");
 	}
 
-	async searchBikeStations(databaseId: string, criteria: FilterCriteria): Promise<any> {
+	async searchBikeStations(databaseId: string, term: string): Promise<any> {
 		const response = await this.notion.search({
 			query: 'External tasks',
 			filter: {

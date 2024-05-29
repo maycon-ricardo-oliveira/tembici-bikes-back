@@ -191,6 +191,68 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 
 	}
 
+	async searchBikeStations(databaseId: string, sheetName: string, term: string): Promise<any> {
+			try {
+				let startRow = 1;
+				let filteredData: any[] = [];
+	
+				const headerResult = await this.service.spreadsheets.values.get({
+					spreadsheetId: databaseId,
+					range: `${sheetName}!A1:Z1`,
+					valueRenderOption: 'UNFORMATTED_VALUE'
+				});
+	
+				const headers = headerResult.data.values ? headerResult.data.values[0] : [];
+				if (headers.length === 0) {
+					throw new Error('No headers found in the sheet.');
+				}
+	
+				const headerMap = new Map(headers.map((header, index) => [header, index]));
+	
+				while (true) {
+					const endRow = startRow + this.batchSize - 1;
+					const result = await this.service.spreadsheets.values.get({
+						spreadsheetId: databaseId,
+						range: `${sheetName}!A${startRow}:Z${endRow}`,
+					});
+	
+					const values = result.data.values;
+					if (!values || values.length === 0) {
+						break;
+					}
+	
+					const filteredBatch = values.filter((row, rowIndex) => {
+						if (startRow === 1 && rowIndex === 0) {
+							return false;
+						}
+						const stationIndex = headerMap.get('Estação');
+						const addressIndex = headerMap.get('Endereço');
+						const stationValue = stationIndex !== undefined ? row[stationIndex] : '';
+						const addressValue = addressIndex !== undefined ? row[addressIndex] : '';
+	
+						return (
+							stationValue.toString().toLowerCase().includes(term.toLowerCase()) ||
+							addressValue.toString().toLowerCase().includes(term.toLowerCase())
+						);
+					}).map(row => {
+						const obj: { [key: string]: any } = {};
+						headers.forEach((header, index) => {
+							obj[header] = row[index];
+						});
+						return obj;
+					});
+	
+					filteredData = filteredData.concat(filteredBatch);
+					startRow += this.batchSize;
+				}
+	
+				return filteredData;
+		} catch (error) {
+			console.error('Error searching bike stations:', error);
+			throw new Error('Failed to search bike stations.');
+		}
+	}
+
 	async updateSheetData(enhancedData: any[], headers:any[], spreadsheetId:string, sheetName:string) {
 		const updatedValues = enhancedData.map(row => headers.map(header => row[header]));
 
