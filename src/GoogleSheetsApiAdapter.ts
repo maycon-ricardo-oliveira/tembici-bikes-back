@@ -165,8 +165,8 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 				const price = this.getPriceByTypeOnObj(row);
 				const tariff = this.calculateTariff(price);
 
-				let lat = row['Latitude'];
-				let lng = row['Longitude'];
+				let lat = Number(row['Latitude']) || null;
+				let lng = Number(row['Longitude']) || null;
 
 				if (!lat || !lng) {
           const location = await this.getLatLngFromAddress(row['Endereço']);

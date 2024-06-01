@@ -10,7 +10,26 @@ export default class GetBikeStations {
 	}
 
 	async execute(databaseId:string, sheetName:string, criteria: FilterCriteria) {
-		const response = await this.apiGateway.getBikeStations(databaseId, sheetName, criteria);
+		const bikeStations = await this.apiGateway.getBikeStations(databaseId, sheetName, criteria);
+			
+			const response = bikeStations.map((bikeStation: any) => {
+				return {
+					mech: bikeStation['Mecanica'],
+					electric: bikeStation['Elétrica'],
+					address: bikeStation['Endereço'],
+					addCharge: bikeStation['Cobrança Adicional'],
+					type: bikeStation['Tipo'],
+					dayOfWeek: bikeStation['Dia da semana'],
+					time: bikeStation['Horário'],
+					neighborhood: bikeStation['Bairro'],
+					plan: bikeStation['Plano'],
+					tariff: bikeStation['Tarifa'],
+					lat: bikeStation['Latitude'],
+					lng: bikeStation['Longitude'],
+				};
+
+			})
+
 		return response;
 	}
 
