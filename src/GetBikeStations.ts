@@ -22,6 +22,7 @@ export default class GetBikeStations {
 					dayOfWeek: bikeStation['Dia da semana'],
 					time: bikeStation['Horário'],
 					neighborhood: bikeStation['Bairro'],
+					city: bikeStation['Cidade'],
 					plan: bikeStation['Plano'],
 					tariff: bikeStation['Tarifa'],
 					lat: bikeStation['Latitude'],

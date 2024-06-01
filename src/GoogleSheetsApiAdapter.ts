@@ -63,19 +63,18 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
     return 0;
 	}
 
-	getPriceByTypeOnObj(criteria: FilterCriteria): number {
+	getPriceByTypeOnObj(criteria: FilterCriteria, row: any): number {
 
 		if (criteria['Tipo']) {
 			if (criteria['Tipo'] == 'mecanica') {
-				return parseFloat(criteria['Mecanica']) || 0;
+				return parseFloat(row['Mecanica']) || 0;
 			}
 			if (criteria['Tipo'] == 'eletrica') {
-				return parseFloat(criteria['Elétrica']) || 0;
+				return parseFloat(row['Elétrica']) || 0;
 			}
 		}
 		return 0;
 	}
-	
 
 	async getBikeStations(spreadsheetId: string, sheetName: string, criteria: FilterCriteria) {
 		try {
@@ -162,9 +161,10 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			}
 
 			const enhancedData =  await Promise.all(filteredData.map(async row => {
-				const price = this.getPriceByTypeOnObj(row);
+				const price = this.getPriceByTypeOnObj(criteria, row);
 				const tariff = this.calculateTariff(price);
 
+				console.log(price, tariff, row, criteria)
 				let lat = Number(row['Latitude']) || null;
 				let lng = Number(row['Longitude']) || null;
 
