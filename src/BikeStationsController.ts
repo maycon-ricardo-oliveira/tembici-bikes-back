@@ -24,7 +24,7 @@ export default class BikeStationsController {
 				'Tarifa': req.query.tariff ?? null,
 				'Cidade': req.query.city ?? null
 			};
-			
+
 			const sheetName = req.params.sheetName;
 			const databaseId = req.params.databaseId;
 			const response = await getBikeStations.execute(databaseId, sheetName, criteria);

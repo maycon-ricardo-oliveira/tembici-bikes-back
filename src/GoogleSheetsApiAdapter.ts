@@ -112,6 +112,10 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 							const type = criteria['Tipo'] || null;
 							const price = this.getPriceByType(row, headerMap, type);
 
+							if (value == 'tariff' && price !== 0) {
+								return true;
+							}
+
 							const tariff = this.calculateTariff(price);
 							if (value !== null && value !== tariff) {
 									return false;
@@ -164,7 +168,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 				const price = this.getPriceByTypeOnObj(criteria, row);
 				const tariff = this.calculateTariff(price);
 
-				console.log(price, tariff, row, criteria)
 				let lat = Number(row['Latitude']) || null;
 				let lng = Number(row['Longitude']) || null;
 
