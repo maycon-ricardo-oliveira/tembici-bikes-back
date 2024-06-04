@@ -14,14 +14,12 @@ export default class GetBikeStations {
 		try {
 
 			const bikeStations = await this.apiGateway.getBikeStations(databaseId, sheetName, criteria);
-			
-
 
 			const response = bikeStations.map((bikeStation: any) => {
 				return {
 					mech: bikeStation['Mecanica'],
-					title: bikeStation['Estação'],
 					electric: bikeStation['Elétrica'],
+					title: bikeStation['Estação'],
 					address: bikeStation['Endereço'],
 					addCharge: bikeStation['Cobrança Adicional'],
 					type: bikeStation['Tipo'],

@@ -48,13 +48,16 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		}
 	};
 
-	getPriceByType(row: any[], headerMap: Map<string, number>, type: string | null): number {
-    if (type === 'mecanica') {
+	getPriceByType(row: any[], headerMap: Map<string, number>, type: string): number {
+    console.log(row, headerMap, type)
+	
+		
+		if (type.toLowerCase() === 'mech') {
         const mechIndex = headerMap.get('Mecanica');
         if (mechIndex !== undefined) {
           return parseFloat(row[mechIndex]) || 0;
         }
-    } else if (type === 'eletrica') {
+    } else if (type.toLowerCase() === 'electric') {
         const elecIndex = headerMap.get('Elétrica');
         if (elecIndex !== undefined) {
           return parseFloat(row[elecIndex]) || 0;
@@ -109,14 +112,20 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			const matchesCriteria = (row: any[]) => {
 				for (const [key, value] of Object.entries(criteria)) {
 						if (key === 'Tarifa') {
-							const type = criteria['Tipo'] || null;
+							const type = criteria['Tipo'] || 'mech';
 							const price = this.getPriceByType(row, headerMap, type);
 
-							if (value == 'tariff' && price !== 0) {
-								return true;
+							console.log("Price",  price)
+							if (value === 'tariff' && price > 0) {
+                return true;
 							}
 
+							if (value === 'none' && price === 0) {
+								return true;
+            	}
+
 							const tariff = this.calculateTariff(price);
+
 							if (value !== null && value !== tariff) {
 									return false;
 							}
