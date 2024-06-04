@@ -5,6 +5,12 @@ import credentials from "../credentials.json";
 import GoogleSheetFilter from "./Filters/GoogleSheetFilter";
 import ApiGateway from "./ApiGateway";
 
+import fs from 'fs/promises';
+import path from 'path';
+
+
+const configFilePath = path.join(__dirname, 'configs.json');
+
 import 'reflect-metadata';
 import { Location, Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
 import axios from 'axios';
@@ -33,6 +39,33 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		const provider: GoogleMapsProvider = new GoogleMapsProvider(axios, this.apiKey);
 		this.geocoder = new Geocoder(provider);
 	}
+
+	async readConfig() {
+		try {
+			const data = await fs.readFile(configFilePath, 'utf8');
+			return JSON.parse(data);
+		} catch (error) {
+			console.error('Error reading config file:', error);
+			return null;
+		}
+	}
+
+	async writeConfig(config: any) {
+		try {
+			await fs.writeFile(configFilePath, JSON.stringify(config, null, 2));
+		} catch (error) {
+			console.error('Error writing to config file:', error);
+		}
+	}
+
+	has12HoursPassed(lastExecution: string): boolean {
+    const lastExecutionDate = new Date(lastExecution);
+    const currentDate = new Date();
+    const timeDifference = currentDate.getTime() - lastExecutionDate.getTime();
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    return hoursDifference >= 12;
+	}
+
 
 	calculateTariff(price: number) {
 		if (price === 0) {
@@ -196,7 +229,20 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 				};
 			}));
 
-			await this.updateSheetData(enhancedData, headers, spreadsheetId, sheetName);
+			const config = await this.readConfig();
+
+			if (!config || !config.lastExecution) {
+
+				console.error('Invalid config file or missing last execution date.');
+				return;
+			}
+
+			if (this.has12HoursPassed(config.lastExecution)) {
+				await this.updateSheetData(enhancedData, headers, spreadsheetId, sheetName);
+				config.lastExecution = new Date().toISOString();
+    		await this.writeConfig(config);
+			}
+
 			return enhancedData;
 		} catch (error) {
 			console.error('Error filtering sheet:', error);
