@@ -100,5 +100,8 @@
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true,
     "resolveJsonModule": true,
-  }
+    
+
+  },
+  "include": ["src/**/*.ts", "src/**/*.json"],
 }
