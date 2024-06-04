@@ -31,7 +31,6 @@ export default class NotionApiAdapter implements ApiGateway {
 				timestamp: 'last_edited_time'
 			},
 		});
-		console.log(response);
 	}
 	
 	async getPage(pageId: string): Promise<any> {

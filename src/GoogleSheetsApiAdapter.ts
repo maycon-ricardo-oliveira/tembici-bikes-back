@@ -81,9 +81,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		}
 	};
 
-	getPriceByType(row: any[], headerMap: Map<string, number>, type: string): number {
-    console.log(row, headerMap, type)
-	
+	getPriceByType(row: any[], headerMap: Map<string, number>, type: string): number {	
 		
 		if (type.toLowerCase() === 'mech') {
         const mechIndex = headerMap.get('Mecanica');
@@ -208,8 +206,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			const enhancedData =  await Promise.all(filteredData.map(async row => {
 				const price = this.getPriceByTypeOnObj(criteria, row);
 				const tariff = this.calculateTariff(price);
-
-				console.log(price, tariff)
 
 				let lat = Number(row['Latitude']) || null;
 				let lng = Number(row['Longitude']) || null;

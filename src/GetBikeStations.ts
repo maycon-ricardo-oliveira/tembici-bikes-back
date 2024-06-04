@@ -38,7 +38,6 @@ export default class GetBikeStations {
 			return response;
 
 		} catch(error) {
-			console.log(error);
 			console.error('Error searching bike stations:', error);
 			throw new Error('Failed to search bike stations.');
 
