@@ -10,8 +10,13 @@ export default class GetBikeStations {
 	}
 
 	async execute(databaseId:string, sheetName:string, criteria: FilterCriteria) {
-		const bikeStations = await this.apiGateway.getBikeStations(databaseId, sheetName, criteria);
+		
+		try {
+
+			const bikeStations = await this.apiGateway.getBikeStations(databaseId, sheetName, criteria);
 			
+
+
 			const response = bikeStations.map((bikeStation: any) => {
 				return {
 					mech: bikeStation['Mecanica'],
@@ -31,7 +36,16 @@ export default class GetBikeStations {
 
 			})
 
-		return response;
+			return response;
+
+		} catch(error) {
+			console.log(error);
+			console.error('Error searching bike stations:', error);
+			throw new Error('Failed to search bike stations.');
+
+		}
+		
+		
 	}
 
 }

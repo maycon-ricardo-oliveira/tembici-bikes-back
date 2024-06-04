@@ -17,7 +17,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 	apiKey
 	filters: Array<Filter> = [];
 	service
-	batchSize = 500
+	batchSize = 400
 	geocoder
 	constructor () {
 		this.apiKey = process.env.GOOGLE_API_KEY ?? ''
