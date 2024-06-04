@@ -20,6 +20,7 @@ export default class GetBikeStations {
 			const response = bikeStations.map((bikeStation: any) => {
 				return {
 					mech: bikeStation['Mecanica'],
+					title: bikeStation['Estação'],
 					electric: bikeStation['Elétrica'],
 					address: bikeStation['Endereço'],
 					addCharge: bikeStation['Cobrança Adicional'],
