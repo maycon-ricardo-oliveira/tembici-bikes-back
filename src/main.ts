@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import BikeStationsController from "./BikeStationsController";
 import ExpressAdapter from "./ExpressAdapter";
 import FiltersController from "./FiltersController";
@@ -10,7 +11,6 @@ import SearchBikeStations from "./SearchBikeStations";
 
 dotenv.config();
 
-const sheetName = 'Testing';
 const port = parseInt(process.env.PORT || "3030", 10);
 
 const googleSheetsApiAdapter = new GoogleSheetsApiAdapter();

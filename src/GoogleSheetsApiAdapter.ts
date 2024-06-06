@@ -7,13 +7,13 @@ import ApiGateway from "./ApiGateway";
 
 import fs from 'fs/promises';
 import path from 'path';
+import { Location, Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
+import axios from 'axios';
+
 
 
 const configFilePath = path.join(__dirname, 'configs.json');
-
-import 'reflect-metadata';
-import { Location, Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
-import axios from 'axios';
+const cacheFilePath = path.join(__dirname, 'bikeStationsCache.json');
 
 export interface FilterCriteria {
   [key: string]: any;
@@ -22,9 +22,9 @@ export interface FilterCriteria {
 export default class GoogleSheetsApiAdapter implements ApiGateway {
 	apiKey
 	filters: Array<Filter> = [];
-	service
-	batchSize = 400
-	geocoder
+	service;
+	batchSize = 400;
+	geocoder: Geocoder;
 	constructor () {
 		this.apiKey = process.env.GOOGLE_API_KEY ?? ''
 		const auth = new google.auth.GoogleAuth({
@@ -34,7 +34,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
         private_key: credentials.private_key,
       },
 		});
-		this.service = google.sheets({version: 'v4', auth});
+		this.service = google.sheets({version: 'v4', auth, timeout: 10000});
 
 		const provider: GoogleMapsProvider = new GoogleMapsProvider(axios, this.apiKey);
 		this.geocoder = new Geocoder(provider);
@@ -57,6 +57,24 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			console.error('Error writing to config file:', error);
 		}
 	}
+
+	async readCache() {
+    try {
+      const data = await fs.readFile(cacheFilePath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('Error reading cache file:', error);
+      return null;
+    }
+  }
+
+  async writeCache(data: any) {
+    try {
+      await fs.writeFile(cacheFilePath, JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error('Error writing to cache file:', error);
+    }
+  }
 
 	has12HoursPassed(lastExecution: string): boolean {
     const lastExecutionDate = new Date(lastExecution);
@@ -109,205 +127,194 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		return 0;
 	}
 
-	async getBikeStations(spreadsheetId: string, sheetName: string, criteria: FilterCriteria) {
-		try {
-			let startRow = 1;
-			let filteredData:any[] = [];
-	
-			const headerResult = await this.service.spreadsheets.values.get({
-				spreadsheetId,
-				range: `${sheetName}!A1:Z1`,
-				valueRenderOption: 'UNFORMATTED_VALUE'
-			});
+	matchesCriteria(row: any, criteria: FilterCriteria, headerMap?: Map<string, number>): boolean {
+    for (const [key, value] of Object.entries(criteria)) {
+        console.log(`Checking criteria: ${key} = ${value}`);
 
-			const headers = headerResult.data.values ? headerResult.data.values[0] : [];
-			if (headers.length === 0) {
-				throw new Error('No headers found in the sheet.');
-			}
-	
-			const headerMap = new Map(headers.map((header, index) => [header, index]));
+        if (key === 'Tarifa') {
+            const type = criteria['Tipo'] || 'mech';
+            const price = headerMap ? this.getPriceByType(row, headerMap, type) : this.getPriceByTypeOnObj(criteria, row);
 
-			let latIndex = headers.indexOf('Latitude');
-      let lngIndex = headers.indexOf('Longitude');
+            console.log(price, criteria, [key, value]);
 
-      if (latIndex === -1) {
-        headers.push('Latitude');
-        latIndex = headers.length - 1;
-      }
-      if (lngIndex === -1) {
-        headers.push('Longitude');
-        lngIndex = headers.length - 1;
-      }
-
-			const matchesCriteria = (row: any[]) => {
-				for (const [key, value] of Object.entries(criteria)) {
-						if (key === 'Tarifa') {
-							const type = criteria['Tipo'] || 'mech';
-							const price = this.getPriceByType(row, headerMap, type);
-
-							if (value === 'tariff' && price > 0) {
+            if (value === 'tariff' && price > 0) {
                 return true;
-							}
+            }
 
-							if (value === 'none' && price === 0) {
-								return true;
-            	}
+            if (value === 'none' && price === 0) {
+                return true;
+            }
 
-							const tariff = this.calculateTariff(price);
+            const tariff = this.calculateTariff(price);
 
-							if (value !== null && value !== tariff) {
-									return false;
-							}
-						} else if (key === 'Tipo' && (value === 'mecanica' || value === 'eletrica')) {
-								continue;
-						} else {
-								const colIndex = headerMap.get(key);
-								if (colIndex !== undefined) {
-										const cellValue = row[colIndex];
-										if (value !== null && value !== cellValue) {
-												return false;
-										}
-								}
-						}
-				}
-				return true;
-		};
-		
-			while (true) {
-				const endRow = startRow + this.batchSize - 1;
-				const result = await this.service.spreadsheets.values.get({
-					spreadsheetId,
-					range: `${sheetName}!A${startRow}:Z${endRow}`,
-				});
-	
-				const values = result.data.values;
-				if (!values || values.length === 0) {
-					break;
-				}
-	
-				const filteredBatch = values.filter((row, rowIndex) => {
-					if (startRow === 1 && rowIndex === 0) {
-						return false;
-					}
-					return matchesCriteria(row);
-				}).map(row => {
-          const obj: { [key: string]: any } = {};
-          headers.forEach((header, index) => {
-            obj[header] = row[index];
-          });
-          return obj;
-        });
-	
-				filteredData = filteredData.concat(filteredBatch);
-				startRow += this.batchSize;
-			}
+            if (value !== null && value !== tariff) {
+                return false;
+            }
+        } else if (key === 'Tipo' && (value.toLowerCase() === 'mech' || value.toLowerCase() === 'electric')) {
+            // Ignore "Tipo" key as it is used to select price type only
+            continue;
+        } else {
+            const keyM = headerMap?.get(key);
 
-			const enhancedData =  await Promise.all(filteredData.map(async row => {
-				const price = this.getPriceByTypeOnObj(criteria, row);
-				const tariff = this.calculateTariff(price);
+            if (keyM === undefined) {
+                console.log(`Header ${key} not found in headerMap`);
+                return false;
+            }
 
-				let lat = Number(row['Latitude']) || null;
-				let lng = Number(row['Longitude']) || null;
-
-				if (!lat || !lng) {
-          const location = await this.getLatLngFromAddress(row['Endereço']);
-          lat = location.lat;
-          lng = location.lng;
+            const cellValue = headerMap ? row[keyM] : row[key];
+            if (value !== null && value !== cellValue) {
+                return false;
+            }
         }
-
-				return {
-					...row,
-					'Tipo': criteria['Tipo'],
-					'Tarifa': tariff,
-					'Latitude': lat,
-					'Longitude': lng
-				};
-			}));
-
-			const config = await this.readConfig();
-
-			if (!config || !config.lastExecution) {
-
-				console.error('Invalid config file or missing last execution date.');
-				return;
-			}
-
-			if (this.has12HoursPassed(config.lastExecution)) {
-				await this.updateSheetData(enhancedData, headers, spreadsheetId, sheetName);
-				config.lastExecution = new Date().toISOString();
-    		await this.writeConfig(config);
-			}
-
-			return enhancedData;
-		} catch (error) {
-			console.error('Error filtering sheet:', error);
-		}
-
+    }
+    return true;
 	}
 
-	async searchBikeStations(databaseId: string, sheetName: string, term: string): Promise<any> {
-			try {
-				let startRow = 1;
-				let filteredData: any[] = [];
-	
-				const headerResult = await this.service.spreadsheets.values.get({
-					spreadsheetId: databaseId,
-					range: `${sheetName}!A1:Z1`,
-					valueRenderOption: 'UNFORMATTED_VALUE'
-				});
-	
-				const headers = headerResult.data.values ? headerResult.data.values[0] : [];
-				if (headers.length === 0) {
-					throw new Error('No headers found in the sheet.');
-				}
-	
-				const headerMap = new Map(headers.map((header, index) => [header, index]));
-	
-				while (true) {
-					const endRow = startRow + this.batchSize - 1;
-					const result = await this.service.spreadsheets.values.get({
-						spreadsheetId: databaseId,
-						range: `${sheetName}!A${startRow}:Z${endRow}`,
-					});
-	
-					const values = result.data.values;
-					if (!values || values.length === 0) {
-						break;
-					}
-	
-					const filteredBatch = values.filter((row, rowIndex) => {
-						if (startRow === 1 && rowIndex === 0) {
-							return false;
-						}
-						const stationIndex = headerMap.get('Estação');
-						const addressIndex = headerMap.get('Endereço');
-						const neighborhoodIndex = headerMap.get('Bairro');
-						const stationValue = stationIndex !== undefined ? row[stationIndex] : '';
-						const addressValue = addressIndex !== undefined ? row[addressIndex] : '';
-						const neighborhoodValue = neighborhoodIndex !== undefined ? row[neighborhoodIndex] : '';
 
-						return (
-							stationValue.toString().toLowerCase().includes(term.toLowerCase()) ||
-							addressValue.toString().toLowerCase().includes(term.toLowerCase()) ||
-							neighborhoodValue.toString().toLowerCase().includes(term.toLowerCase())
-						);
-					}).map(row => {
-						const obj: { [key: string]: any } = {};
-						headers.forEach((header, index) => {
-							obj[header] = row[index];
-						});
-						return obj;
-					});
+	async fetchData(spreadsheetId: string, sheetName: string): Promise<any[]> {
+    let startRow = 1;
+    let data: any[] = [];
+
+    const headerResult = await this.service.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:Z1`,
+      valueRenderOption: 'UNFORMATTED_VALUE'
+    });
+
+    const headers = headerResult.data.values ? headerResult.data.values[0] : [];
+    if (headers.length === 0) {
+      throw new Error('No headers found in the sheet.');
+    }
+
+    while (true) {
+      const endRow = startRow + this.batchSize - 1;
+      const result = await this.service.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A${startRow}:Z${endRow}`,
+      });
+
+      const values = result.data.values;
+      if (!values || values.length === 0) {
+        break;
+      }
+
+      const batchData = values.map((row, rowIndex) => {
+        const obj: { [key: string]: any } = {};
+        headers.forEach((header, index) => {
+          obj[header] = row[index];
+        });
+        return obj;
+      });
+
+      data = data.concat(batchData);
+      startRow += this.batchSize;
+    }
+
+    const enhancedData = await Promise.all(data.map(async row => {
+      const price = this.getPriceByTypeOnObj({}, row); // Empty criteria object to calculate price
+      const tariff = this.calculateTariff(price);
+
+      let lat = Number(row['Latitude']) || null;
+      let lng = Number(row['Longitude']) || null;
+
+      // if (!lat || !lng) {
+      //   const location = await this.getLatLngFromAddress(row['Endereço']);
+      //   lat = location.lat;
+      //   lng = location.lng;
+      // }
+
+      return {
+        ...row,
+        'Tarifa': tariff,
+        'Latitude': lat,
+        'Longitude': lng
+      };
+    }));
+
+    return enhancedData;
+  }
+
+  async getFilteredBikeStations(data: any[], criteria: FilterCriteria, headerMap: Map<string, number>): Promise<any[]> {
+    const filteredData = data.filter(row => this.matchesCriteria(row, criteria, headerMap));
+
+    const enhancedData = await Promise.all(filteredData.map(async row => {
+      const price = this.getPriceByTypeOnObj(criteria, row);
+      const tariff = this.calculateTariff(price);
+
+      let lat = Number(row['Latitude']) || null;
+      let lng = Number(row['Longitude']) || null;
+
+      // if (!lat || !lng) {
+      //   const location = await this.getLatLngFromAddress(row['Endereço']);
+      //   lat = location.lat;
+      //   lng = location.lng;
+      // }
+
+      return {
+        ...row,
+        'Tipo': criteria['Tipo'],
+        'Tarifa': tariff,
+        'Latitude': lat,
+        'Longitude': lng
+      };
+    }));
+
+    return enhancedData;
+  }
+
+  async getBikeStations(spreadsheetId: string, sheetName: string, criteria: FilterCriteria) {
+    try {
+      const config = await this.readConfig();
+      let cacheData = await this.readCache();
+
+      // if (!cacheData || !config || !config.lastExecution || this.has12HoursPassed(config.lastExecution)) {
+      // cacheData = await this.fetchData(spreadsheetId, sheetName);
+      // await this.writeCache(cacheData);
+			//
+      // config.lastExecution = new Date().toISOString();
+      // await this.writeConfig(config);
+      // }
+
+      // Get headers and create headerMap
+      const headerResult = await this.service.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A1:Z1`,
+        valueRenderOption: 'UNFORMATTED_VALUE'
+      });
+
+      const headers = headerResult.data.values ? headerResult.data.values[0] : [];
+      if (headers.length === 0) {
+        throw new Error('No headers found in the sheet.');
+      }
+
+      const headerMap = new Map(headers.map((header, index) => [header, index]));
+
+      const filteredData = await this.getFilteredBikeStations(cacheData, criteria, headerMap);
+      return filteredData;
+
+    } catch (error) {
+      console.error('Error filtering sheet:', error);
+    }
+  }
+
+	async searchBikeStations(databaseId: string, sheetName: string, term: string): Promise<any> {
+		try {
+
+			let cacheData = await this.readCache();
+
+			const filteredData = cacheData.filter((row:any) => {
+				const station = row['Estação']?.toString().toLowerCase() || '';
+				const address = row['Endereço']?.toString().toLowerCase() || '';
+				const neighborhood = row['Bairro']?.toString().toLowerCase() || '';
+				return station.includes(term.toLowerCase()) || address.includes(term.toLowerCase()) || neighborhood.includes(term.toLowerCase());
+			});
 	
-					filteredData = filteredData.concat(filteredBatch);
-					startRow += this.batchSize;
-				}
-	
-				return filteredData;
+			return filteredData;
 		} catch (error) {
 			console.error('Error searching bike stations:', error);
 			throw new Error('Failed to search bike stations.');
 		}
+
 	}
 
 	async updateSheetData(enhancedData: any[], headers:any[], spreadsheetId:string, sheetName:string) {
@@ -325,25 +332,25 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 
 	async getLatLngFromAddress(address: string): Promise<{ lat: number|null, lng: number|null }> {
 				
-		try {
-			const locations: Location[] = await this.geocoder.geocode({
-					address: address,
-			});
-		
-			if (!locations || locations.length === 0) {
-        return { lat: null, lng: null };
+		const retries = 5;
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+		for (let i = 0; i < retries; i++) {
+      try {
+        const [location] = await this.geocoder.geocode({ address });
+        return {
+          lat: location.latitude,
+          lng: location.longitude
+        };
+      } catch (error) {
+        console.error(`Error geocoding address: ${address}. Retrying...`);
+        await delay(1000);
       }
-			
-			return {
-				lat: locations[0]?.latitude ?? null,
-				lng: locations[0]?.longitude ?? null,
-			};
-		
-		} catch (err) {
-			console.error(err);
-			return { lat: null, lng: null };
-		}
-	}
+    }
+
+    console.error(`Failed to geocode address after ${retries} attempts: ${address}`);
+    return { lat: 0, lng: 0 };
+  }
 	
 	async getDatabaseFilters(spreadsheetId: string, sheetName: string): Promise<Array<Filter>> {
 
