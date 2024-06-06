@@ -66,7 +66,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
     return hoursDifference >= 12;
 	}
 
-
 	calculateTariff(price: number) {
 		if (price === 0) {
 			return 'none';
@@ -282,12 +281,15 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 						}
 						const stationIndex = headerMap.get('Estação');
 						const addressIndex = headerMap.get('Endereço');
+						const neighborhoodIndex = headerMap.get('Bairro');
 						const stationValue = stationIndex !== undefined ? row[stationIndex] : '';
 						const addressValue = addressIndex !== undefined ? row[addressIndex] : '';
-	
+						const neighborhoodValue = neighborhoodIndex !== undefined ? row[neighborhoodIndex] : '';
+
 						return (
 							stationValue.toString().toLowerCase().includes(term.toLowerCase()) ||
-							addressValue.toString().toLowerCase().includes(term.toLowerCase())
+							addressValue.toString().toLowerCase().includes(term.toLowerCase()) ||
+							neighborhoodValue.toString().toLowerCase().includes(term.toLowerCase())
 						);
 					}).map(row => {
 						const obj: { [key: string]: any } = {};
