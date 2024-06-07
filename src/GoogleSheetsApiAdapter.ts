@@ -114,65 +114,99 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 	}
 
 	async fetchData(spreadsheetId: string, sheetName: string): Promise<any[]> {
-    let startRow = 1;
-    let data: any[] = [];
+		let startRow = 1;
+		let data: any[] = [];
 		const rowsToUpdate: any[] = [];
+	
+		const headerResult = await this.service.spreadsheets.values.get({
+			spreadsheetId,
+			range: `${sheetName}!A1:Z1`,
+			valueRenderOption: 'UNFORMATTED_VALUE'
+		});
+	
+		const headers = headerResult.data.values ? headerResult.data.values[0] : [];
+		if (headers.length === 0) {
+			throw new Error('No headers found in the sheet.');
+		}
+	
+		const latIndex = headers.indexOf('Latitude');
+		const lngIndex = headers.indexOf('Longitude');
+	
+		while (true) {
+			const endRow = startRow + this.batchSize - 1;
+			const result = await this.service.spreadsheets.values.get({
+				spreadsheetId,
+				range: `${sheetName}!A${startRow}:Z${endRow}`,
+			});
+	
+			const values = result.data.values;
+			if (!values || values.length === 0) {
+				break;
+			}
+	
+			const batchData = await Promise.all(values.map(async (row, rowIndex) => {
+				if (startRow === 1 && rowIndex === 0) {
+					return null;  // Skip header row
+				}
+	
+				const obj: { [key: string]: any } = {};
+				headers.forEach((header, index) => {
+					obj[header] = row[index];
+				});
+	
+				let lat = Number(obj['Latitude']) || null;
+				let lng = Number(obj['Longitude']) || null;
+	
+				if (lat === null || lng === null) {
+					const location = await this.getLatLngFromAddress(obj['Endereço']);
+					lat = location.lat;
+					lng = location.lng;
+	
+					obj['Latitude'] = lat;
+					obj['Longitude'] = lng;
+	
+					rowsToUpdate.push({
+						range: `${sheetName}!${this.getColumnLetter(latIndex + 1)}${startRow + rowIndex}`,
+						values: [[lat]]
+					});
+					rowsToUpdate.push({
+						range: `${sheetName}!${this.getColumnLetter(lngIndex + 1)}${startRow + rowIndex}`,
+						values: [[lng]]
+					});
 
-    const headerResult = await this.service.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:Z1`,
-      valueRenderOption: 'UNFORMATTED_VALUE'
-    });
+					console.log(`Update Cell ${rowsToUpdate[rowIndex]}`)
+				}
+	
+				return obj;
+			}));
+	
+			data = data.concat(batchData.filter(row => row !== null));
+			startRow += this.batchSize;
+		}
+	
+		if (rowsToUpdate.length > 0) {
+			await this.service.spreadsheets.values.batchUpdate({
+				spreadsheetId,
+				requestBody: {
+					valueInputOption: 'RAW',
+					data: rowsToUpdate
+				}
+			});
+		}
+	
+		return data;
+	}
 
-    const headers = headerResult.data.values ? headerResult.data.values[0] : [];
-    if (headers.length === 0) {
-      throw new Error('No headers found in the sheet.');
-    }
-
-    while (true) {
-      const endRow = startRow + this.batchSize - 1;
-      const result = await this.service.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${sheetName}!A${startRow}:Z${endRow}`,
-      });
-
-      const values = result.data.values;
-      if (!values || values.length === 0) {
-        break;
-      }
-
-      const batchData = values.map((row, rowIndex) => {
-        const obj: { [key: string]: any } = {};
-        headers.forEach((header, index) => {
-          obj[header] = row[index];
-        });
-        return obj;
-      });
-
-      data = data.concat(batchData);
-      startRow += this.batchSize;
-    }
-
-    const enhancedData = await Promise.all(data.map(async row => {
-
-      let lat = Number(row['Latitude']) || null;
-      let lng = Number(row['Longitude']) || null;
-
-      if (!lat || !lng) {
-        const location = await this.getLatLngFromAddress(row['Endereço']);
-        lat = location.lat;
-        lng = location.lng;
-      }
-
-      return {
-        ...row,
-        'Latitude': lat,
-        'Longitude': lng
-      };
-    }));
-
-    return enhancedData;
-  }
+	getColumnLetter(columnIndex: number): string {
+		let temp = 0;
+		let letter = '';
+		while (columnIndex > 0) {
+			temp = (columnIndex - 1) % 26;
+			letter = String.fromCharCode(temp + 65) + letter;
+			columnIndex = (columnIndex - temp - 1) / 26;
+		}
+		return letter;
+	}
 
   async getFilteredBikeStations(data: any[], criteria: FilterCriteria): Promise<any[]> {
 		
@@ -206,14 +240,12 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
       const config = await this.config.read();
       let cacheData = await this.cache.read();
 
-			console.log(config)
-			
       if (!cacheData || !config || !config.lastExecution || this.has12HoursPassed(config.lastExecution)) {
 				cacheData = await this.fetchData(spreadsheetId, sheetName);
 				await this.cache.write(cacheData);
 				
 				config.lastExecution = new Date().toISOString();
-				// await this.config.write(config);
+				await this.config.write(config);
       }
 
       const filteredData = await this.getFilteredBikeStations(cacheData, criteria);
