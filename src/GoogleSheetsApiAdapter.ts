@@ -201,6 +201,23 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 				const neighborhood = row['Bairro']?.toString().toLowerCase() || '';
 				return station.includes(term.toLowerCase()) || address.includes(term.toLowerCase()) || neighborhood.includes(term.toLowerCase());
 			});
+
+			const enhancedData = await Promise.all(filteredData.map(async (row: { [x: string]: any; }) => {
+				const type = 'mech';
+				const price = this.getPriceByType(row, type);
+				const tariff = this.calculateTariff(price);
+	
+				return {
+					...row,
+					'Tipo': type,
+					'Tarifa': tariff,
+					'Latitude': Number(row['Latitude']),
+					'Longitude': Number(row['Longitude'])
+				};
+			}));
+	
+			return enhancedData;
+
 	
 			return filteredData;
 		} catch (error) {
