@@ -6,14 +6,10 @@ import GoogleSheetFilter from "./Filters/GoogleSheetFilter";
 import ApiGateway from "./ApiGateway";
 
 import fs from 'fs/promises';
-import path from 'path';
 import { Location, Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
 import axios from 'axios';
-
-
-
-const configFilePath = path.join(__dirname, 'configs.json');
-const cacheFilePath = path.join(__dirname, 'bikeStationsCache.json');
+import CacheFileManager from "./CacheFileManager";
+import { filter } from "cheerio/lib/api/traversing";
 
 export interface FilterCriteria {
   [key: string]: any;
@@ -25,7 +21,9 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 	service;
 	batchSize = 400;
 	geocoder: Geocoder;
-	constructor () {
+	cache: CacheFileManager;
+	config: CacheFileManager;
+	constructor (cache: CacheFileManager, config: CacheFileManager) {
 		this.apiKey = process.env.GOOGLE_API_KEY ?? ''
 		const auth = new google.auth.GoogleAuth({
 			scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -38,43 +36,9 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 
 		const provider: GoogleMapsProvider = new GoogleMapsProvider(axios, this.apiKey);
 		this.geocoder = new Geocoder(provider);
+		this.cache = cache;
+		this.config = config;
 	}
-
-	async readConfig() {
-		try {
-			const data = await fs.readFile(configFilePath, 'utf8');
-			return JSON.parse(data);
-		} catch (error) {
-			console.error('Error reading config file:', error);
-			return null;
-		}
-	}
-
-	async writeConfig(config: any) {
-		try {
-			await fs.writeFile(configFilePath, JSON.stringify(config, null, 2));
-		} catch (error) {
-			console.error('Error writing to config file:', error);
-		}
-	}
-
-	async readCache() {
-    try {
-      const data = await fs.readFile(cacheFilePath, 'utf8');
-      return JSON.parse(data);
-    } catch (error) {
-      console.error('Error reading cache file:', error);
-      return null;
-    }
-  }
-
-  async writeCache(data: any) {
-    try {
-      await fs.writeFile(cacheFilePath, JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error('Error writing to cache file:', error);
-    }
-  }
 
 	has12HoursPassed(lastExecution: string): boolean {
     const lastExecutionDate = new Date(lastExecution);
@@ -98,20 +62,13 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		}
 	};
 
-	getPriceByType(row: any[], headerMap: Map<string, number>, type: string): number {	
-		
+	getPriceByType(row: any, type: string): number {	
 		if (type.toLowerCase() === 'mech') {
-        const mechIndex = headerMap.get('Mecanica');
-        if (mechIndex !== undefined) {
-          return parseFloat(row[mechIndex]) || 0;
-        }
-    } else if (type.toLowerCase() === 'electric') {
-        const elecIndex = headerMap.get('Elétrica');
-        if (elecIndex !== undefined) {
-          return parseFloat(row[elecIndex]) || 0;
-        }
-    }
-    return 0;
+			return parseFloat(row['Mecanica']) || 0;
+		} else if (type.toLowerCase() === 'electric') {
+				return parseFloat(row['Elétrica']) || 0;
+		}
+		return 0;
 	}
 
 	getPriceByTypeOnObj(criteria: FilterCriteria, row: any): number {
@@ -127,53 +84,39 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		return 0;
 	}
 
-	matchesCriteria(row: any, criteria: FilterCriteria, headerMap?: Map<string, number>): boolean {
-    for (const [key, value] of Object.entries(criteria)) {
-        console.log(`Checking criteria: ${key} = ${value}`);
+	matchesCriteria(row: any, criteria: FilterCriteria): boolean {
+    
+		for (const [key, value] of Object.entries(criteria)) {
+			if (
+				(value === null) || 
+				(key === 'Tipo' && (value === 'mech' || value === 'electric'))
+			) continue;
 
-        if (key === 'Tarifa') {
-            const type = criteria['Tipo'] || 'mech';
-            const price = headerMap ? this.getPriceByType(row, headerMap, type) : this.getPriceByTypeOnObj(criteria, row);
+			if (key === 'Tarifa') {
+				const type = criteria['Tipo'] || 'mech';
+				const price = this.getPriceByType(row, type);
+				const tariff = this.calculateTariff(price);
+				if ((value === 'tariff' && price > 0) || (value === 'none' && price === 0)) {
+					return true;
+				}
 
-            console.log(price, criteria, [key, value]);
+				if (value !== null && value !== tariff) {
+					return false;
+				}
+			}
 
-            if (value === 'tariff' && price > 0) {
-                return true;
-            }
-
-            if (value === 'none' && price === 0) {
-                return true;
-            }
-
-            const tariff = this.calculateTariff(price);
-
-            if (value !== null && value !== tariff) {
-                return false;
-            }
-        } else if (key === 'Tipo' && (value.toLowerCase() === 'mech' || value.toLowerCase() === 'electric')) {
-            // Ignore "Tipo" key as it is used to select price type only
-            continue;
-        } else {
-            const keyM = headerMap?.get(key);
-
-            if (keyM === undefined) {
-                console.log(`Header ${key} not found in headerMap`);
-                return false;
-            }
-
-            const cellValue = headerMap ? row[keyM] : row[key];
-            if (value !== null && value !== cellValue) {
-                return false;
-            }
-        }
+			const cellValue = row[key];
+			if (value !== cellValue) {
+				return false;
+			}
     }
     return true;
 	}
 
-
 	async fetchData(spreadsheetId: string, sheetName: string): Promise<any[]> {
     let startRow = 1;
     let data: any[] = [];
+		const rowsToUpdate: any[] = [];
 
     const headerResult = await this.service.spreadsheets.values.get({
       spreadsheetId,
@@ -211,21 +154,18 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
     }
 
     const enhancedData = await Promise.all(data.map(async row => {
-      const price = this.getPriceByTypeOnObj({}, row); // Empty criteria object to calculate price
-      const tariff = this.calculateTariff(price);
 
       let lat = Number(row['Latitude']) || null;
       let lng = Number(row['Longitude']) || null;
 
-      // if (!lat || !lng) {
-      //   const location = await this.getLatLngFromAddress(row['Endereço']);
-      //   lat = location.lat;
-      //   lng = location.lng;
-      // }
+      if (!lat || !lng) {
+        const location = await this.getLatLngFromAddress(row['Endereço']);
+        lat = location.lat;
+        lng = location.lng;
+      }
 
       return {
         ...row,
-        'Tarifa': tariff,
         'Latitude': lat,
         'Longitude': lng
       };
@@ -234,28 +174,27 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
     return enhancedData;
   }
 
-  async getFilteredBikeStations(data: any[], criteria: FilterCriteria, headerMap: Map<string, number>): Promise<any[]> {
-    const filteredData = data.filter(row => this.matchesCriteria(row, criteria, headerMap));
+  async getFilteredBikeStations(data: any[], criteria: FilterCriteria): Promise<any[]> {
+		
+		const filteredData = data.filter(row => {
+			if (!this.matchesCriteria(row, criteria)) {
+				return false;
+			}
+			const lat = Number(row['Latitude']) || null;
+			const lng = Number(row['Longitude']) || null;
+			return lat !== null && lng !== null;
+		});
 
     const enhancedData = await Promise.all(filteredData.map(async row => {
       const price = this.getPriceByTypeOnObj(criteria, row);
       const tariff = this.calculateTariff(price);
 
-      let lat = Number(row['Latitude']) || null;
-      let lng = Number(row['Longitude']) || null;
-
-      // if (!lat || !lng) {
-      //   const location = await this.getLatLngFromAddress(row['Endereço']);
-      //   lat = location.lat;
-      //   lng = location.lng;
-      // }
-
       return {
         ...row,
         'Tipo': criteria['Tipo'],
         'Tarifa': tariff,
-        'Latitude': lat,
-        'Longitude': lng
+        'Latitude': Number(row['Latitude']),
+        'Longitude': Number(row['Longitude'])
       };
     }));
 
@@ -264,32 +203,20 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 
   async getBikeStations(spreadsheetId: string, sheetName: string, criteria: FilterCriteria) {
     try {
-      const config = await this.readConfig();
-      let cacheData = await this.readCache();
+      const config = await this.config.read();
+      let cacheData = await this.cache.read();
 
-      // if (!cacheData || !config || !config.lastExecution || this.has12HoursPassed(config.lastExecution)) {
-      // cacheData = await this.fetchData(spreadsheetId, sheetName);
-      // await this.writeCache(cacheData);
-			//
-      // config.lastExecution = new Date().toISOString();
-      // await this.writeConfig(config);
-      // }
-
-      // Get headers and create headerMap
-      const headerResult = await this.service.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${sheetName}!A1:Z1`,
-        valueRenderOption: 'UNFORMATTED_VALUE'
-      });
-
-      const headers = headerResult.data.values ? headerResult.data.values[0] : [];
-      if (headers.length === 0) {
-        throw new Error('No headers found in the sheet.');
+			console.log(config)
+			
+      if (!cacheData || !config || !config.lastExecution || this.has12HoursPassed(config.lastExecution)) {
+				cacheData = await this.fetchData(spreadsheetId, sheetName);
+				await this.cache.write(cacheData);
+				
+				config.lastExecution = new Date().toISOString();
+				// await this.config.write(config);
       }
 
-      const headerMap = new Map(headers.map((header, index) => [header, index]));
-
-      const filteredData = await this.getFilteredBikeStations(cacheData, criteria, headerMap);
+      const filteredData = await this.getFilteredBikeStations(cacheData, criteria);
       return filteredData;
 
     } catch (error) {
@@ -300,7 +227,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 	async searchBikeStations(databaseId: string, sheetName: string, term: string): Promise<any> {
 		try {
 
-			let cacheData = await this.readCache();
+			let cacheData = await this.cache.read();
 
 			const filteredData = cacheData.filter((row:any) => {
 				const station = row['Estação']?.toString().toLowerCase() || '';
