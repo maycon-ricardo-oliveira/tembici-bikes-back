@@ -1,15 +1,12 @@
-import { GoogleSpreadsheet } from "google-spreadsheet";
 import Filter from "./Filter";
 import {google} from 'googleapis';
 import credentials from "../credentials.json";
 import GoogleSheetFilter from "./Filters/GoogleSheetFilter";
 import ApiGateway from "./ApiGateway";
 
-import fs from 'fs/promises';
-import { Location, Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
+import { Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
 import axios from 'axios';
 import CacheFileManager from "./CacheFileManager";
-import { filter } from "cheerio/lib/api/traversing";
 
 export interface FilterCriteria {
   [key: string]: any;
