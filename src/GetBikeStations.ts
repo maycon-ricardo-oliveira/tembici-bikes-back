@@ -15,6 +15,8 @@ export default class GetBikeStations {
 
 			const bikeStations = await this.apiGateway.getBikeStations(databaseId, sheetName, criteria);
 
+			return bikeStations;
+
 			const response = bikeStations.map((bikeStation: any) => {
 				return {
 					mech: bikeStation['Mecanica'],
