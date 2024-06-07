@@ -1,15 +1,13 @@
 import fs from 'fs/promises';
+import path from 'path';
 
 export default class CacheFileManager {
-	filePath: string;
 
-	constructor(filePath: string) {
-		this.filePath = filePath;
-	}
+	async read(fileName: string): Promise<any> {
+		const filePath = path.join(__dirname, fileName+'.json');
 
-	async read(): Promise<any> {
 		try {
-			const data = await fs.readFile(this.filePath, 'utf8');
+			const data = await fs.readFile(filePath, 'utf8');
 			return JSON.parse(data);
 		} catch (error) {
 			console.error('Error reading cache file:', error);
@@ -17,9 +15,11 @@ export default class CacheFileManager {
 		}
 	}
 
-	async write(data: any[]): Promise<void> {
+	async write(fileName: string, data: any[]): Promise<void> {
+		const filePath = path.join(__dirname, fileName+'.json');
+
 		try {
-			await fs.writeFile(this.filePath, JSON.stringify(data, null, 2));
+			await fs.writeFile(filePath, JSON.stringify(data, null, 2));
 		} catch (error) {
 			console.error('Error writing cache file:', error);
 		}

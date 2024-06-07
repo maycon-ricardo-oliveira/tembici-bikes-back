@@ -20,8 +20,7 @@ export default class ResetCache {
 	batchSize = 400;
 	geocoder: Geocoder;
 	cache: CacheFileManager;
-	config: CacheFileManager;
-	constructor (cache: CacheFileManager, config: CacheFileManager) {
+	constructor (cache: CacheFileManager) {
 		this.apiKey = process.env.GOOGLE_API_KEY ?? ''
 		const auth = new google.auth.GoogleAuth({
 			scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -35,22 +34,20 @@ export default class ResetCache {
 		const provider: GoogleMapsProvider = new GoogleMapsProvider(axios, this.apiKey);
 		this.geocoder = new Geocoder(provider);
 		this.cache = cache;
-		this.config = config;
 	}
 	
 	async execute(spreadsheetId: string, sheetName: string) {
 
-		const config = await this.config.read();
-		let cacheData = await this.cache.read();
+		const config = await this.cache.read('configs');
+		let cacheData = await this.cache.read(sheetName);
 
 		cacheData = await this.fetchData(spreadsheetId, sheetName);
-		await this.cache.write(cacheData);
+		await this.cache.write(sheetName, cacheData);
 
 		config.lastExecution = new Date();
 		config.lastExecution.setDate(config.lastExecution.getDate()); // Definindo a data para dois dias atrás
-		await this.config.write(config);
+		await this.cache.write('configs', config);
 		
-
 		return {
 			lastExecution: config.lastExecution,
 			cache: 'updated'

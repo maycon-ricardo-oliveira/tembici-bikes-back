@@ -26,9 +26,9 @@ export default class BikeStationsController {
 				'Latitude': req.query.lat ?? null,
 				'Longitude': req.query.lng ?? null
 			};
-
 			const sheetName = req.params.sheetName;
 			const databaseId = req.params.databaseId;
+
 			const response = await getBikeStations.execute(databaseId, sheetName, criteria);
 			return response;
 		});

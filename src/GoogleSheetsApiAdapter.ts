@@ -3,7 +3,6 @@ import {google} from 'googleapis';
 import credentials from "../credentials.json";
 import GoogleSheetFilter from "./Filters/GoogleSheetFilter";
 import ApiGateway from "./ApiGateway";
-
 import { Geocoder, GoogleMapsProvider } from '@goparrot/geocoder';
 import axios from 'axios';
 import CacheFileManager from "./CacheFileManager";
@@ -19,8 +18,7 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 	batchSize = 400;
 	geocoder: Geocoder;
 	cache: CacheFileManager;
-	config: CacheFileManager;
-	constructor (cache: CacheFileManager, config: CacheFileManager) {
+	constructor (cache: CacheFileManager) {
 		this.apiKey = process.env.GOOGLE_API_KEY ?? ''
 		const auth = new google.auth.GoogleAuth({
 			scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -34,8 +32,65 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 		const provider: GoogleMapsProvider = new GoogleMapsProvider(axios, this.apiKey);
 		this.geocoder = new Geocoder(provider);
 		this.cache = cache;
-		this.config = config;
 	}
+
+	async getBikeStations(spreadsheetId: string, sheetName: string, criteria: FilterCriteria) {
+    try {
+
+			if (criteria['Latitude'] && criteria['Longitude']) {
+
+				const lat = criteria['Latitude'];
+				const lng = criteria['Longitude'];
+
+				const city = await this.getCityFromLatLng(lat, lng);
+				if (city) {
+					criteria['Cidade'] = city;
+				}
+			}
+
+      let cacheData = await this.cache.read(sheetName);
+      const filteredData = await this.getFilteredBikeStations(cacheData, criteria);
+      return filteredData;
+
+    } catch (error) {
+      console.error('Error filtering sheet:', error);
+    }
+  }
+
+	async searchBikeStations(databaseId: string, sheetName: string, term: string): Promise<any> {
+		try {
+
+			let cacheData = await this.cache.read(sheetName);
+
+			const filteredData = cacheData.filter((row:any) => {
+				const station = row['Estação']?.toString().toLowerCase() || '';
+				const address = row['Endereço']?.toString().toLowerCase() || '';
+				const neighborhood = row['Bairro']?.toString().toLowerCase() || '';
+				return station.includes(term.toLowerCase()) || address.includes(term.toLowerCase()) || neighborhood.includes(term.toLowerCase());
+			});
+
+			const enhancedData = await Promise.all(filteredData.map(async (row: { [x: string]: any; }) => {
+				const type = 'mech';
+				const price = this.getPriceByType(row, type);
+				const tariff = this.calculateTariff(price);
+	
+				return {
+					...row,
+					'Tipo': type,
+					'Tarifa': tariff,
+					'Latitude': Number(row['Latitude']),
+					'Longitude': Number(row['Longitude'])
+				};
+			}));
+			return enhancedData;
+		} catch (error) {
+			console.error('Error searching bike stations:', error);
+			throw new Error('Failed to search bike stations.');
+		}
+
+	}
+
+	// auxiliar methods
 
 	calculateTariff(price: number) {
 		if (price === 0) {
@@ -82,35 +137,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			console.error('Error getting city from lat/lng:', error);
 			return null;
 		}
-	}
-
-	matchesCriteriaOld(row: any, criteria: FilterCriteria): boolean {
-
-		console.log(criteria, row)
-		for (const [key, value] of Object.entries(criteria)) {
-			console.log(`Citeria key ${key} | Criteria value ${value} `)
-
-			if (value !== null) {
-				if (key === 'Tarifa') {
-					const type = criteria['Tipo'] || 'mech';
-					const price = this.getPriceByType(row, type);
-					if ((value === 'tariff' && price > 0) || (value === 'none' && price === 0)) {
-						return true;
-					}
-				}
-	
-				if (key === 'Cidade') {
-					console.log(`Cidade criteria ${value} - Row ${row[key]}`)
-				}
-	
-				const cellValue = row[key];
-				if (value !== cellValue && key !== 'Tipo') {
-					return false;
-				}
-	
-			}
-    }
-    return true;
 	}
 
 	matchesCriteria(row: any, criteria: FilterCriteria): boolean {
@@ -167,64 +193,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
     return enhancedData;
   }
 
-  async getBikeStations(spreadsheetId: string, sheetName: string, criteria: FilterCriteria) {
-    try {
-
-			if (criteria['Latitude'] && criteria['Longitude']) {
-
-				const lat = criteria['Latitude']
-				const lng = criteria['Longitude'];
-
-				const city = await this.getCityFromLatLng(lat, lng);
-				if (city) {
-					criteria['Cidade'] = city;
-				}
-			}
-
-      let cacheData = await this.cache.read();
-      const filteredData = await this.getFilteredBikeStations(cacheData, criteria);
-      return filteredData;
-
-    } catch (error) {
-      console.error('Error filtering sheet:', error);
-    }
-  }
-
-	async searchBikeStations(databaseId: string, sheetName: string, term: string): Promise<any> {
-		try {
-
-			let cacheData = await this.cache.read();
-
-			const filteredData = cacheData.filter((row:any) => {
-				const station = row['Estação']?.toString().toLowerCase() || '';
-				const address = row['Endereço']?.toString().toLowerCase() || '';
-				const neighborhood = row['Bairro']?.toString().toLowerCase() || '';
-				return station.includes(term.toLowerCase()) || address.includes(term.toLowerCase()) || neighborhood.includes(term.toLowerCase());
-			});
-
-			const enhancedData = await Promise.all(filteredData.map(async (row: { [x: string]: any; }) => {
-				const type = 'mech';
-				const price = this.getPriceByType(row, type);
-				const tariff = this.calculateTariff(price);
-	
-				return {
-					...row,
-					'Tipo': type,
-					'Tarifa': tariff,
-					'Latitude': Number(row['Latitude']),
-					'Longitude': Number(row['Longitude'])
-				};
-			}));
-	
-			return enhancedData;
-
-	
-			return filteredData;
-		} catch (error) {
-			console.error('Error searching bike stations:', error);
-			throw new Error('Failed to search bike stations.');
-		}
-
-	}
+  
 	
 }

@@ -1,0 +1,67 @@
+[
+  {
+    "Mecanica": "7.8",
+    "Elétrica": "0",
+    "Estação": "140 - JK Iguatemi",
+    "Endereço": "Av. Pres. Juscelino Kubitschek, esquina com Av. Chedid Jafet, no canteiro central oposto ao 2041.",
+    "Bairro": "Itaim Bibi",
+    "Plano": "Básico",
+    "Dia da semana": "Domingo",
+    "Horário": "10h - 14h",
+    "Cobrança Adicional": "Sim",
+    "Latitude": -23.5901692,
+    "Longitude": -46.6804937
+  },
+  {
+    "Mecanica": "7.8",
+    "Elétrica": "0",
+    "Estação": "112 - R. Lee de Forest",
+    "Endereço": "Rua Lee de Forest, na lateral do número 1748 da Av. Eng. Luis Carlos Berrini",
+    "Bairro": "Itaim Bibi",
+    "Plano": "Básico",
+    "Dia da semana": "Domingo",
+    "Horário": "10h - 14h",
+    "Cobrança Adicional": "Sim",
+    "Latitude": -23.612033,
+    "Longitude": -46.6957961
+  },
+  {
+    "Mecanica": "7.8",
+    "Elétrica": "0",
+    "Estação": "103 - Rua Hans Oersted",
+    "Endereço": "Rua Hans Oersted, oposto ao número 45 / esquina com Av. Engenheiro Luís Carlos Berrini",
+    "Bairro": "Itaim Bibi",
+    "Plano": "Básico",
+    "Dia da semana": "Domingo",
+    "Horário": "10h - 14h",
+    "Cobrança Adicional": "Sim",
+    "Latitude": -23.6086047,
+    "Longitude": -46.6957456
+  },
+  {
+    "Mecanica": "7.8",
+    "Elétrica": "3",
+    "Estação": "333 - Rua Flórida 53",
+    "Endereço": "Rua Flórida, oposto ao número 53 / esquina com Av. Santa Amaro",
+    "Bairro": "Itaim Bibi",
+    "Plano": "Básico",
+    "Dia da semana": "Domingo",
+    "Horário": "10h - 14h",
+    "Cobrança Adicional": "Sim",
+    "Latitude": 0,
+    "Longitude": 0
+  },
+  {
+    "Mecanica": "7.8",
+    "Elétrica": "7.8",
+    "Estação": "140 - JK Iguatemi",
+    "Endereço": "Av. Pres. Juscelino Kubitschek, esquina com Av. Chedid Jafet, no canteiro central oposto ao 2041.",
+    "Bairro": "Itaim Bibi",
+    "Plano": "Básico",
+    "Dia da semana": "Domingo",
+    "Horário": "10h - 14h",
+    "Cobrança Adicional": "Sim",
+    "Latitude": -23.5901692,
+    "Longitude": -46.6804937
+  }
+]
