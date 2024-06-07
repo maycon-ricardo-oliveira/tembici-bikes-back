@@ -5,13 +5,13 @@
     "Estação": "145 - CPTM Berrini",
     "Endereço": "Av. das Nações Unidas, em frente à estação da CPTM Berrini, esquina com Rua Guilherme Barbosa de Melo [R. Guilherme Barbosa de Melo, 117]",
     "Bairro": "Itaim Bibi",
+    "Cidade": "Cidade",
     "Plano": "Básico",
     "Dia da semana": "Domingo",
     "Horário": "10h - 14h",
     "Cobrança Adicional": "Sim",
     "Latitude": -23.60495,
-    "Longitude": -46.69615,
-    "Cidade": "Cidade"
+    "Longitude": -46.69615
   },
   {
     "Mecanica": "0",
@@ -19,13 +19,13 @@
     "Estação": "143 - Rua João Cachoeira",
     "Endereço": "Rua João Cachoeira, oposto ao 450 / próximo à Rua Tabapuã",
     "Bairro": "Itaim Bibi",
+    "Cidade": "Cidade",
     "Plano": "Básico",
     "Dia da semana": "Domingo",
     "Horário": "10h - 14h",
     "Cobrança Adicional": "Sim",
     "Latitude": -23.5840055,
-    "Longitude": -46.6779332,
-    "Cidade": "Cidade"
+    "Longitude": -46.6779332
   },
   {
     "Mecanica": "0",
