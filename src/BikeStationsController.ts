@@ -22,7 +22,9 @@ export default class BikeStationsController {
 				'Bairro': req.query.neighborhood ?? null,
 				'Plano': req.query.plan ?? null,
 				'Tarifa': req.query.tariff ?? null,
-				'Cidade': req.query.city ?? null
+				'Cidade': req.query.city ?? null,
+				'Latitude': req.query.lat ?? null,
+				'Longitude': req.query.lng ?? null
 			};
 
 			const sheetName = req.params.sheetName;
