@@ -178,7 +178,6 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			return lat !== null && lng !== null;
 		});
 
-		console.log(filteredData, criteria)
     const enhancedData = await Promise.all(filteredData.map(async row => {
 			const type = criteria['Tipo'] || 'mech';
 			const price = this.getPriceByType(row, type);
