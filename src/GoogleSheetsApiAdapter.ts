@@ -149,7 +149,8 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			if (value === null || ignoreFiltersKey.includes(key)) {
 				continue;
 			}
-	
+	    const cellValue = row[key];
+
 			if (key === 'Tarifa') {
 				const type = criteria['Tipo'] || 'mech';
 				const price = this.getPriceByType(row, type);
@@ -158,14 +159,30 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 					return false;
 				}
 			} else {
-				const cellValue = row[key];
-				if (value !== cellValue) {
-					return false;
+				if (typeof value === 'string' && typeof cellValue === 'string') {
+					// Comparação de strings
+					if (value.trim() !== cellValue?.trim()) {
+						return false;
+					}
+				} else {
+					// Comparação de outros tipos (números, booleanos, etc.)
+					if (value !== cellValue) {
+						return false;
+					}
 				}
 			}
 		}
 		return true;
 	}
+
+	 convertToNumber (value: string | number): number {
+		if (typeof value === 'string') {
+			const normalizedValue = value.replace(',', '.');
+			const numberValue = parseFloat(normalizedValue);
+			return numberValue;
+		}
+		return value;
+	};
 
   async getFilteredBikeStations(data: any[], criteria: FilterCriteria): Promise<any[]> {
 		
@@ -173,8 +190,8 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
 			if (!this.matchesCriteria(row, criteria)) {
 				return false;
 			}
-			const lat = Number(row['Latitude']) || null;
-			const lng = Number(row['Longitude']) || null;
+			const lat = this.convertToNumber(row['Latitude']) || null;
+			const lng = this.convertToNumber(row['Longitude']) || null;
 			return lat !== null && lng !== null;
 		});
 
@@ -187,8 +204,8 @@ export default class GoogleSheetsApiAdapter implements ApiGateway {
         ...row,
         'Tipo': criteria['Tipo'],
         'Tarifa': tariff,
-        'Latitude': Number(row['Latitude']),
-        'Longitude': Number(row['Longitude'])
+        'Latitude': this.convertToNumber(row['Latitude']),
+        'Longitude': this.convertToNumber(row['Longitude'])
       };
     }));
 

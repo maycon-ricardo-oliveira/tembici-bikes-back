@@ -9,6 +9,7 @@ import SearchBikeStations from "./SearchBikeStations";
 import CacheFileManager from './CacheFileManager';
 import ResetCacheController from './ResetCacheController';
 import ResetCache from './ResetCache';
+import HealthController from './HealthController';
 
 dotenv.config();
 
@@ -27,5 +28,8 @@ new BikeStationsController(httpServer, getBikeStations);
 new SearchBikeStationsController(httpServer, searchBikeStations);
 new ResetCacheController(httpServer, resetCache);
 
+new HealthController(httpServer);
+
+console.log("Server up on port: " + port)
 console.log(":)")
 httpServer.listen(port);
